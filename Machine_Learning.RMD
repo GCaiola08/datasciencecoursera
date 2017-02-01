@@ -1,0 +1,69 @@
+---
+title: "Coursera MAchine Learning"
+author: "Gregory Caiola"
+date: "January 29, 2016"
+output: html_document
+---
+
+
+```{r Setup, include=FALSE}
+knitr::opts_chunk$set(tidy=F, fig.width=12,  fig.height=6, fig.align='left')
+
+library(dplyr)
+library(knitr)
+
+train <- read.csv("pml-training.csv")
+test <- read.csv("pml-testing.csv")
+```
+EXECUTIVE SUMMARY
+
+We will try to predict the manner in which certain individuals are exercising. We choose a random forst. After eliminating some missing variables and some variables that are directly correlated with our outcome variable we end up with around a 99% classification rate. The most predictive variables are yaw_belt, roll_bell and roll_dumbbell
+
+
+## Question 3
+
+- First we load the data and explore its structure.
+
+```{r 3 load data, include=TRUE, comment="", message = F, warning = F}
+names(train)
+str(train)
+table(train$classe)
+
+modelset <- train[,c(1:11, 37:49 ,60:68, 84:86, 160) ]
+modelset1 <- na.omit(modelset)
+testset1<-test[,c(1:11, 37:49 ,60:68, 84:86, 160) ] 
+
+```
+
+There seem to be a substantial amount of variables that our empty. We drop these to create our modelling dataset. 
+
+Our outcome variable class has 5 outcomes and seems fairly evenly distributed. It is also populated for all observations. This should allow for reasonable predictions.
+
+
+```{r three histograms, include=TRUE, comment="", message = F, warning = F}
+library(randomForest)
+rf1<-randomForest(modelset$classe ~ ., data=modelset,importance=T)
+
+rf1$confusion
+#table(modelset1$num_window, modelset1$classe)
+
+```
+
+We choose to build a random forest because it should be a good unbiased predictor. We do not have to specify cross validation here because our predictions are based on the out of bag trees. This is essentially "n-fold" cross validation
+
+However in our first model, we see perfect predcions. A bit of analysis shows a few variables (num_window and the datestamps) are direct predictors. We can remove these and run a new forest
+
+```{r pairs , include=TRUE, comment="", message = F, warning = F}
+modelset2 <- modelset[,c(2, 8:37)]
+rf2 <- randomForest(modelset2$classe ~ ., data=modelset2,importance=T)
+rf2$confusion
+par(mfrow=c(1,1))
+varImpPlot(rf2,type=1,scale=F,
+           main="Forecasting Importance Plot for admit
+           (Unstandardized)",col="blue",cex=1,pch=19)
+
+#predict(rf1, testset1, type="response")
+
+```
+
+With the new parameters we see a very strong 99% prediction. We can built a variable importance plot and see a range of important predictors, starting with yaw_belt
